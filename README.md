@@ -1,6 +1,6 @@
 **Alumno:** Mariano Solle
+
 **Comisión:** 91060
-**Descripción:** En este repositorio se encuentra el diseño físico y la carga de datos para el módulo de ventas.
 
 # ventas_tech_db.sql
 Creación de DB de Ventas Tech
