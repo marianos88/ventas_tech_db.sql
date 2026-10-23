@@ -1,0 +1,78 @@
+-- ==== Pre-entrega 4: Consultas SQL de negocio ===
+-- Alumno: Mariano Solle
+-- Comisión: 91060
+
+-- SECCIÓN 1: selección de DB y verificación de tablas
+USE Ventas_Tech_DB
+
+SELECT * FROM ventas
+SELECT * FROM productos
+
+-- SECCIÓN 2: Scripts de Consultas
+-- Consulta 1 — Resumen ejecutivo mensual Total facturado, cantidad de pedidos y ticket promedio, agrupados por mes.
+--Calculá el total como cantidad * precio_unitario.
+--Usá alias descriptivos en español y agrupá por mes con MONTH(fecha_venta)
+SELECT
+    YEAR (fecha_venta)  AS anio,
+    MONTH (fecha_venta) AS mes,
+    COUNT(*)            AS pedidos,
+    SUM(cantidad * precio_unitario) AS Total_facturado,
+    AVG(cantidad * precio_unitario) AS ticket_promedio
+FROM ventas
+GROUP BY
+    YEAR(fecha_venta),
+    MONTH(fecha_venta)
+ORDER BY anio, mes;
+
+
+--Consulta 2 — Ranking de productos Top 5 de id_producto por total facturado, mostrando las unidades vendidas (SUM(cantidad)) y el total generado.
+--Usá GROUP BY id_producto, ORDER BY y TOP 5.
+SELECT TOP 5 id_producto,
+    SUM(cantidad) AS unidades_vendidas,
+    SUM(cantidad * precio_unitario) AS total_generado
+FROM ventas
+GROUP BY id_producto
+ORDER BY total_generado DESC;
+
+
+--Consulta 3 — Clientes recurrentes id_cliente que hayan realizado más de un pedido, mostrando la cantidad de pedidos y el total gastado.
+--Usá GROUP BY id_cliente y HAVING COUNT(*) > 1.
+SELECT id_cliente,
+    COUNT(*) AS pedidos,
+    SUM(cantidad * precio_unitario) AS total_gastado
+FROM ventas
+GROUP BY id_cliente
+HAVING COUNT (*) > 1
+ORDER BY pedidos DESC;
+
+
+--Consulta 4 — Meses por encima/por debajo del promedio Total facturado por mes,
+--con una columna adicional que etiquete con CASE WHEN si ese mes quedó 'Por encima' o 'Por debajo' del promedio mensual general.
+SELECT 
+    YEAR(fecha_venta) AS anio,
+    MONTH(fecha_venta) AS mes,
+    SUM(cantidad * precio_unitario) AS total_facturado,
+    CASE 
+        WHEN SUM(cantidad * precio_unitario) > (
+            SELECT AVG(total_mes)
+            FROM (
+                SELECT SUM(cantidad * precio_unitario) AS total_mes
+                FROM ventas
+                GROUP BY YEAR(fecha_venta), MONTH(fecha_venta)
+            ) t
+        ) THEN 'Por encima'
+        ELSE 'Por debajo'
+    END AS comparativa
+FROM ventas
+GROUP BY YEAR(fecha_venta), MONTH(fecha_venta)
+ORDER BY anio, mes;
+
+-- Sección 3: Hallazgos del Negocio
+-- 1. Tasa de Recurrencia: El 40% de los compradores del periodo analizado (4 de 10 clientes) 
+--    demostró fidelidad al realizar más de un pedido en un lapso menor a dos semanas.
+
+-- 2. Ticket Promedio: Un cliente gasta en promedio $644.40.- (considerando solamente el período de Marzo) cada vez que hace una compra en tu negocio.
+ 
+-- 3. El ranking demuestra que el volumen de unidades no define al líder en ingresos.
+--    El producto que lidera el total_generado no es necesariamente el que tiene más unidades_vendidas,
+--    lo que evidencia la presencia de artículos de mayor valor por unidad que llevan adelante la facturación mensual.
