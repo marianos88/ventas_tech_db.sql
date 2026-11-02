@@ -8,38 +8,33 @@ SELECT * FROM productos;
 SELECT * FROM clientes;
 
 -- Consulta 1 — Vista base del proyecto (INNER JOIN)
--- Propósito: Identificar la edad promedio de los géneros que realizaron compras y determinar cuál de ellos registra un mayor volumen de transacciones y facturación.
-SELECT
+-- Propósito: Consolidar el detalle transaccional histórico de ventas (fila por fila) integrando los atributos clave de clientes, productos y categorías mediante INNER JOIN.
+SELECT 
+    v.fecha_venta,
+    v.id_cliente,
+    c.nombre AS nombre_cliente,
     c.genero,
-    AVG(c.edad) AS edad_promedio,
-    COUNT(v.id_venta) AS cantidad_ventas,
-    SUM(v.cantidad * v.precio_unitario) AS facturacion_total
+    p.nombre_producto,
+    p.id_categoria,
+    v.cantidad,
+    v.precio_unitario,
+    (v.cantidad * v.precio_unitario) AS total_venta
 FROM ventas AS v
 INNER JOIN productos AS p ON v.id_producto = p.id_producto
-INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
-GROUP BY c.genero;
--- Hallazgo: El segmento femenino presenta un perfil de mayor madurez con una edad promedio de 38 años (frente a los 26 años del masculino). Asimismo, registra una mayor actividad comercial con 6 ventas realizadas (vs. 4 del masculino), consolidándose como el principal motor de ingresos con una facturación total de 5,414.00 (frente a 1,030.00 del segmento masculino).
+INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente;
+-- Hallazgo: Al mantener el modelo a nivel de fila (granularidad transaccional), se preserva la integridad de los datos para su explotación en Power BI. A diferencia de una consulta agrupada de forma temprana en SQL, esta estructura plana permite al motor DAX de Power BI calcular dinámicamente métricas (como la facturación total o la edad promedio por género) cruzándolas en tiempo real con dimensiones temporales, geográficas o de producto sin perder el detalle de ninguna venta individual.
 
 
--- Consulta 2: Clientes sin ventas (LEFT JOIN)
--- Propósito: detectar clientes registrados que nunca compraron, para que CRM los contacte.
+-- Consulta 2 — Clientes sin ventas (LEFT JOIN)
+-- Propósito: Identificar a los clientes registrados en la base de datos que aún no han realizado ninguna compra, permitiendo al equipo de CRM diseñar estrategias de reactivación o bienvenida.
 SELECT
-    c.id_cliente,
     c.nombre,
     c.email,
-    c.fecha_registro,
-    COUNT(v.id_venta) AS cantidad_ventas
-FROM clientes AS c
-LEFT JOIN ventas AS v
-    ON c.id_cliente = v.id_cliente
-GROUP BY 
-    c.id_cliente, 
-    c.nombre, 
-    c.email, 
     c.fecha_registro
-ORDER BY 
-    cantidad_ventas ASC;
--- Hallazgo: De todos los clientes, Carlos Pérez es el único que no tiene ventas registradas.
+FROM clientes AS c
+LEFT JOIN ventas AS v ON c.id_cliente = v.id_cliente
+WHERE v.id_venta IS NULL;
+-- Hallazgo: Mediante la exclusión con LEFT JOIN y WHERE IS NULL, se detectó de forma directa que Carlos Pérez es el único cliente registrado en el sistema que no registra transacciones históricas, convirtiéndose en el público objetivo para la próxima campaña de incentivo de primera compra.
 
 
 -- Consulta 3: Productos sin ventas (LEFT JOIN)
